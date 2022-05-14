@@ -1,5 +1,6 @@
 #include <HX711.h>
 #include <PID_v1.h>
+#include <SoftwareSerial.h>
 
 #define PIN_LOX_INPUT 2         //Entrada do Sensor de Fluxo na porta digital 2 da linha de Oxigenio Líquido.
 #define PIN_LOX_OUTPUT 3        //Saida para valvula na porta PWM 3 da linha de Oxigenio Líquido.
@@ -7,6 +8,8 @@
 #define PIN_ETHANOL_OUTPUT 5    //Saida para valvula na porta PWM 5 da linha de Etanol.
 #define PIN_DT 6                //Entrada DT do módulo HX711 da Celula de Carga.
 #define PIN_SCK 7               //Entrada SCK do módulo HX711 da Celula de Carga.
+#define PIN_RX 10               //Entrada RX do módulo Bluetooth HC-06.
+#define PIN_TX 11               //Saida TX do módulo Bluetooth HC-06.
 
 #define WeightMin 0.010         //Peso minino da Celula de Carga.
 #define WeightMax 100.0         //Peso maximo da Celula de Carga.
@@ -54,6 +57,8 @@ double SpqrSetPoint,          //SetPoint do controle PID.
 
 HX711 scale;
 
+SoftwareSerial serial1(PIN_RX, PIN_TX);
+
 PID LoxPID(&LoxInput, &LoxOutput, &LoxSetPoint, LoxKp, LoxKi, LoxKd, DIRECT);                                   //Instaciando a classe PID da linha de Oxigenio Líquido.
 
 PID EthanolPID(&EthanolInput, &EthanolOutput, &EthanolSetPoint, EthanolKp, EthanolKi, EthanolKd, DIRECT);       //Instaciando a classe PID da linha de Etanol.
@@ -64,6 +69,7 @@ void setup() {
   // put your setup code here, to run once:
 
   Serial.begin(115200);                         //Configurando a velocidade de comunicação da porta serial.
+  serial1.begin(115200);                        //Configurando a velocidade de comunicação da porta serial do módulo Bluetooth HC-06.
 
   pinMode(PIN_LOX_INPUT, INPUT);
   attachInterrupt(0, loxincpulse, RISING);      //Configura o pino PIN_LOX_INPUT(Interrupção 0) para trabalhar como interrupção.
@@ -144,33 +150,33 @@ void loop() {
   if(millis() - lastSend > 100){
     lastSend = millis();
 
-    Serial.print(LoxSetPoint);
-    Serial.print(" ");
-    Serial.print(LoxInput);
-    Serial.print(" ");
-    Serial.print(LoxOutput);
-    Serial.print(" ");
-    Serial.print(EthanolSetPoint);
-    Serial.print(" ");
-    Serial.print(EthanolInput);
-    Serial.print(" ");
-    Serial.print(EthanolOutput);
-    Serial.print(" ");
-    Serial.print(SpqrSetPoint);
-    Serial.print(" ");
-    Serial.print(SpqrInput);
-    Serial.print(" ");
-    Serial.print(SpqrOutput);
-    Serial.println(" ");
+    serial1.print(LoxSetPoint);
+    serial1.print(" ");
+    serial1.print(LoxInput);
+    serial1.print(" ");
+    serial1.print(LoxOutput);
+    serial1.print(" ");
+    serial1.print(EthanolSetPoint);
+    serial1.print(" ");
+    serial1.print(EthanolInput);
+    serial1.print(" ");
+    serial1.print(EthanolOutput);
+    serial1.print(" ");
+    serial1.print(SpqrSetPoint);
+    serial1.print(" ");
+    serial1.print(SpqrInput);
+    serial1.print(" ");
+    serial1.print(SpqrOutput);
+    serial1.println(" ");
     }
 }
 
 void loxincpulse ()
 { 
-  LoxCountPulse++; //Incrementa a variável de contagem dos pulsos
+  LoxCountPulse++;      //Incrementa a variável de contagem dos pulsos
 } 
 
 void ethanolincpulse ()
 { 
-  EthanolCountPulse++; //Incrementa a variável de contagem dos pulsos
+  EthanolCountPulse++;  //Incrementa a variável de contagem dos pulsos
 }
