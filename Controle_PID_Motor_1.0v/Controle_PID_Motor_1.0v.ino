@@ -23,6 +23,8 @@ float weight = 0;               //Armazenar valor de medida em Kg/f
 int LoxCountPulse,              //Contador de pulso do sensor de fluxo da linha de Oxigenio Líquido
     EthanolCountPulse;          //Contador de pulso do sensor de fluxo da linha de Etanol.
 
+boolean starting;               //Variavel de controle de inicialização do Motor.
+
 //--------linha de Oxigenio Líquido-------
 double LoxSetPoint,           //SetPoint do controle PID.
        LoxInput,              //A entrada do controle PID.
@@ -83,6 +85,7 @@ void setup() {
   delay(2000);
   scale.tare();                     //ZERANDO A BALANÇA PARA DESCONSIDERAR A MASSA DA ESTRUTURA
 
+  starting = false;
   SpqrRateMaxg_s = 2000;            //Definir o valor de taxa maxima de vazão dos Reagentes em g/s.
   SpqrProportion = 1.47;            //Definir o valor de Proporção dos Reagentes.
   SpqrSetPoint = 10;                //Definir o SetPoint em Kg/f.
@@ -99,76 +102,84 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
 
-  LoxCountPulse = 0;                                    //Zera a variável para contar os giros por segundos
-  EthanolCountPulse = 0;
-  sei();                                                //Habilita interrupção
-  delay (1000);                                         //Aguarda 1 segundo
-  cli();                                                //Desabilita interrupção
+    Starting();                                           //leitura de comandos(Start/Stop) pela serial.
+    analogWrite(PIN_LOX_OUTPUT, 0);                       //Passando o valor '0' para o Servo Motor da valvula.
+    analogWrite(PIN_ETHANOL_OUTPUT, 0);                   //Passando o valor '0' para o Servo Motor da valvula.
+
+//--------Loop de controle do Motor​-------
+    while(starting){
+    LoxCountPulse = 0;                                    //Zera a variável para contar os giros por segundos
+    EthanolCountPulse = 0;
+    sei();                                                //Habilita interrupção
+    delay (1000);                                         //Aguarda 1 segundo
+    cli();                                                //Desabilita interrupção
+    
+    LoxL_Min = LoxCountPulse / 5.5;                       //Converte para L/min
+    EthanolL_Min = EthanolCountPulse / 5.5;               //Converte para L/min
   
-  LoxL_Min = LoxCountPulse / 5.5;                       //Converte para L/min
-  EthanolL_Min = EthanolCountPulse / 5.5;               //Converte para L/min
-
-  scale.power_up();                                     //LIGANDO O SENSOR
-    
-  weight = scale.get_units(5);                          //SALVANDO NA VARIAVEL O VALOR DA MÉDIA DE 5 MEDIDAS
-    
-  if (weight <= WeightMin ){                            //CONFERE SE A MASSA ESTÁ NA FAIXA VÁLIDA
-    scale.tare();                                       //ZERA A BALANÇA CASO A MASSA SEJA MENOR QUE O VALOR MIN
-    weight = 0;
-    //Serial.println("Tara Configurada!");
-  } else if ( weight >= WeightMax ){
-    scale.tare();                                       //ZERA A BALANÇA CASO A MASSA SEJA MAIOR QUE O VALOR MÁX
-    weight = 0;
-    //Serial.println("Tara Configurada!");
-  } else {
-    //Serial.println(weight,3);
-  }
-
-  scale.power_down();                                   //DESLIGANDO O SENSOR
-
-  //LoxInput = analogRead(PIN_LOX_INPUT);
-  //--------linha de Oxigenio Líquido-------
-  Loxg_s = (1000/LoxDensity)*LoxL_Min;                  //Convertendo L/min em g/s.
-  LoxInput = Loxg_s;                                    //Passando o valor de g/s para entrada do controle PID.
-  LoxPID.Compute();                                     //Executando o controle PID.
-  analogWrite(PIN_LOX_OUTPUT, LoxOutput);               //A saida do controle PID para o Servo Motor da valvula
-
-  //--------linha de Etanol-------
-  Ethanolg_s = (1000/EthanolDensity)*EthanolL_Min;      //Convertendo L/min em g/s.
-  EthanolInput = Ethanolg_s;                            //Passando o valor de g/s para entrada do controle PID.
-  EthanolPID.Compute();                                 //Executando o controle PID.
-  analogWrite(PIN_ETHANOL_OUTPUT, EthanolOutput);       //A saida do controle PID para o Servo Motor da valvula
-
-  //--------Sistema de Proporção & Quantidade dos Reagentes-------
-  SpqrInput = weight;                                                         //Passando o valor em Kg/f para entrada do controle PID.
-  SpqrPID.Compute();                                                          //Executando o controle PID.
-  LoxSetPoint = (SpqrRateMaxg_s/255)*SpqrOutput;                              //Configurando o SetPoint em g/s do controle PID da linha de Oxigenio Líquido.
-  EthanolSetPoint = ((SpqrRateMaxg_s/255)*SpqrOutput)/SpqrProportion;         //Configurando o SetPoint em g/s do controle PID da linha de Etanol.
-
-  if(millis() - lastSend > 100){
-    lastSend = millis();
-
-    serial1.print(LoxSetPoint);
-    serial1.print(" ");
-    serial1.print(LoxInput);
-    serial1.print(" ");
-    serial1.print(LoxOutput);
-    serial1.print(" ");
-    serial1.print(EthanolSetPoint);
-    serial1.print(" ");
-    serial1.print(EthanolInput);
-    serial1.print(" ");
-    serial1.print(EthanolOutput);
-    serial1.print(" ");
-    serial1.print(SpqrSetPoint);
-    serial1.print(" ");
-    serial1.print(SpqrInput);
-    serial1.print(" ");
-    serial1.print(SpqrOutput);
-    serial1.println(" ");
+    scale.power_up();                                     //LIGANDO O SENSOR
+      
+    weight = scale.get_units(5);                          //SALVANDO NA VARIAVEL O VALOR DA MÉDIA DE 5 MEDIDAS
+      
+    if (weight <= WeightMin ){                            //CONFERE SE A MASSA ESTÁ NA FAIXA VÁLIDA
+      scale.tare();                                       //ZERA A BALANÇA CASO A MASSA SEJA MENOR QUE O VALOR MIN
+      weight = 0;
+      //Serial.println("Tara Configurada!");
+    } else if ( weight >= WeightMax ){
+      scale.tare();                                       //ZERA A BALANÇA CASO A MASSA SEJA MAIOR QUE O VALOR MÁX
+      weight = 0;
+      //Serial.println("Tara Configurada!");
+    } else {
+      //Serial.println(weight,3);
     }
+  
+    scale.power_down();                                   //DESLIGANDO O SENSOR
+  
+    //LoxInput = analogRead(PIN_LOX_INPUT);
+    //--------linha de Oxigenio Líquido-------
+    Loxg_s = (1000/LoxDensity)*LoxL_Min;                  //Convertendo L/min em g/s.
+    LoxInput = Loxg_s;                                    //Passando o valor de g/s para entrada do controle PID.
+    LoxPID.Compute();                                     //Executando o controle PID.
+    analogWrite(PIN_LOX_OUTPUT, LoxOutput);               //A saida do controle PID para o Servo Motor da valvula
+  
+    //--------linha de Etanol-------
+    Ethanolg_s = (1000/EthanolDensity)*EthanolL_Min;      //Convertendo L/min em g/s.
+    EthanolInput = Ethanolg_s;                            //Passando o valor de g/s para entrada do controle PID.
+    EthanolPID.Compute();                                 //Executando o controle PID.
+    analogWrite(PIN_ETHANOL_OUTPUT, EthanolOutput);       //A saida do controle PID para o Servo Motor da valvula.
+  
+    //--------Sistema de Proporção & Quantidade dos Reagentes-------
+    SpqrInput = weight;                                                         //Passando o valor em Kg/f para entrada do controle PID.
+    SpqrPID.Compute();                                                          //Executando o controle PID.
+    LoxSetPoint = (SpqrRateMaxg_s/255)*SpqrOutput;                              //Configurando o SetPoint em g/s do controle PID da linha de Oxigenio Líquido.
+    EthanolSetPoint = ((SpqrRateMaxg_s/255)*SpqrOutput)/SpqrProportion;         //Configurando o SetPoint em g/s do controle PID da linha de Etanol.
+
+    if(millis() - lastSend > 100){
+      lastSend = millis();
+  
+      serial1.print(LoxSetPoint);
+      serial1.print(" ");
+      serial1.print(LoxInput);
+      serial1.print(" ");
+      serial1.print(LoxOutput);
+      serial1.print(" ");
+      serial1.print(EthanolSetPoint);
+      serial1.print(" ");
+      serial1.print(EthanolInput);
+      serial1.print(" ");
+      serial1.print(EthanolOutput);
+      serial1.print(" ");
+      serial1.print(SpqrSetPoint);
+      serial1.print(" ");
+      serial1.print(SpqrInput);
+      serial1.print(" ");
+      serial1.print(SpqrOutput);
+      serial1.println(" ");
+      }
+
+      Starting();       //leitura de comandos(Start/Stop) pela serial.
+   }
 }
 
 void loxincpulse ()
@@ -179,4 +190,36 @@ void loxincpulse ()
 void ethanolincpulse ()
 { 
   EthanolCountPulse++;  //Incrementa a variável de contagem dos pulsos
+}
+
+String leStringSerial(){
+  String conteudo = "";
+  char caractere;
+  
+  // Enquanto receber algo pela serial
+  while(serial1.available() > 0) {
+    // Lê byte da serial
+    caractere = serial1.read();
+    // Ignora caractere de quebra de linha
+    if (caractere != '\n'){
+      // Concatena valores
+      conteudo.concat(caractere);
+    }
+    // Aguarda buffer serial ler próximo caractere
+    delay(10);
+  }
+  return conteudo;
+}
+void Starting ()                //leitura de comandos(Start/Stop) pela serial.
+{
+  String dado;
+  if(serial1.available()) {     //Verifica o estado da serial.
+    dado = leStringSerial();
+    if(dado == "Start"){        //Inicia o Motor.
+      starting = true;
+    }
+    if(dado == "Stop"){         //Para o Motor.
+      starting = false;
+    }
+  }  
 }
