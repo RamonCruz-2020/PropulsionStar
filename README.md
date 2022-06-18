@@ -7,7 +7,9 @@
  
  #T1Ep1 #IronManInRealLife #HomenDeFerroNaVidaReal
  
- Programa de Telemetria.
+ Programa de Telemetria:
+ 
+ Canal no youtube: https://www.youtube.com/user/upgrdman
  
  [![Alt text](https://img.youtube.com/vi/lFZ26gD7OIE/0.jpg)](https://www.youtube.com/watch?v=lFZ26gD7OIE)
  
