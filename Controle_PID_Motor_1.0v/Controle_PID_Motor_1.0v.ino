@@ -155,30 +155,20 @@ void loop() {
     LoxSetPoint = (SpqrRateMaxg_s/255)*SpqrOutput;                              //Configurando o SetPoint em g/s do controle PID da linha de Oxigenio Líquido.
     EthanolSetPoint = ((SpqrRateMaxg_s/255)*SpqrOutput)/SpqrProportion;         //Configurando o SetPoint em g/s do controle PID da linha de Etanol.
 
-    if(millis() - lastSend > 100){
-      lastSend = millis();
-  
-      serial1.print(LoxSetPoint);
-      serial1.print(" ");
-      serial1.print(LoxInput);
-      serial1.print(" ");
-      serial1.print(LoxOutput);
-      serial1.print(" ");
-      serial1.print(EthanolSetPoint);
-      serial1.print(" ");
-      serial1.print(EthanolInput);
-      serial1.print(" ");
-      serial1.print(EthanolOutput);
-      serial1.print(" ");
-      serial1.print(SpqrSetPoint);
-      serial1.print(" ");
-      serial1.print(SpqrInput);
-      serial1.print(" ");
-      serial1.print(SpqrOutput);
-      serial1.println(" ");
-      }
+    char text[60];
+    snprintf(text, 60, "%d,%d,%d,%d,%d,%d,%d,%d,%d", 
+    LoxSetPoint,        //SetPoint do controle PID.
+    LoxInput,           //A entrada do controle PID.
+    LoxOutput,          //A saida do controle PID.
+    EthanolSetPoint,    //SetPoint do controle PID.
+    EthanolInput,       //A entrada do controle PID.
+    EthanolOutput,      //A saida do controle PID.
+    SpqrSetPoint,       //SetPoint do controle PID.
+    SpqrInput,          //A entrada do controle PID.
+    SpqrOutput);        //A saida do controle PID.
+    serial1.println(text);
 
-      Starting();       //leitura de comandos(Start/Stop) pela serial.
+    Starting();         //leitura de comandos(Start/Stop) pela serial.
    }
 }
 
